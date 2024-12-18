@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+import axios from "axios";
+import React, { useEffect, useMemo, useState } from "react";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
@@ -21,7 +22,6 @@ import {
   TextField,
 } from "@mui/material";
 import { Edit, Visibility, Delete, Add } from "@mui/icons-material";
-import { data as mockData } from "../Data";
 
 const theme = createTheme({
   palette: {
@@ -41,6 +41,7 @@ const theme = createTheme({
 });
 
 export type Employee = {
+  id: number;
   firstName: string;
   lastName: string;
   email: string;
@@ -52,7 +53,7 @@ export type Employee = {
 };
 
 const Table = () => {
-  const [data, setData] = useState(mockData);
+  const [data, setData] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
     null
   );
@@ -60,6 +61,18 @@ const Table = () => {
   const [dialogType, setDialogType] = useState<
     "edit" | "view" | "delete" | "add" | null
   >(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const result = await axios.get("http://localhost:3001/employees");
+        setData(result.data);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+    fetchData();
+  }, []);
 
   const handleOpenDialog = (
     type: "edit" | "view" | "delete" | "add",
@@ -76,24 +89,43 @@ const Table = () => {
     setDialogType(null);
   };
 
-  const handleSaveEdit = () => {
-    if (dialogType === "add") {
-      setData((prevData) => [...prevData, selectedEmployee!]);
-    } else {
-      setData((prevData) =>
-        prevData.map((emp) =>
-          emp.email === selectedEmployee?.email ? selectedEmployee! : emp
-        )
-      );
+  const handleSaveEdit = async () => {
+    try {
+      if (dialogType === "add") {
+        const response = await axios.post(
+          "http://localhost:3001/employees",
+          selectedEmployee
+        );
+        setData((prevData) => [...prevData, response.data]);
+      } else if (dialogType === "edit") {
+        await axios.put(
+          `http://localhost:3001/employees/${selectedEmployee!.id}`,
+          selectedEmployee
+        );
+        setData((prevData) =>
+          prevData.map((emp) =>
+            emp.id === selectedEmployee!.id ? selectedEmployee! : emp
+          )
+        );
+      }
+      setDialogOpen(false);
+    } catch (error) {
+      console.error("Error saving data:", error);
     }
-    setDialogOpen(false);
   };
 
-  const handleConfirmDelete = () => {
-    setData((prevData) =>
-      prevData.filter((emp) => emp.email !== selectedEmployee?.email)
-    );
-    setDialogOpen(false);
+  const handleConfirmDelete = async () => {
+    try {
+      await axios.delete(
+        `http://localhost:3001/employees/${selectedEmployee!.id}`
+      );
+      setData((prevData) =>
+        prevData.filter((emp) => emp.id !== selectedEmployee!.id)
+      );
+      setDialogOpen(false);
+    } catch (error) {
+      console.error("Error deleting data:", error);
+    }
   };
 
   const columns = useMemo<MRT_ColumnDef<Employee>[]>(
@@ -107,7 +139,7 @@ const Table = () => {
             id: "name",
             header: "Name",
             size: 250,
-            enableColumnFilter: false, // Disable column filter for Name
+            enableColumnFilter: false,
             Cell: ({ renderedCellValue }) => (
               <Box
                 sx={{
@@ -182,11 +214,10 @@ const Table = () => {
   const table = useMaterialReactTable({
     columns,
     data,
-    enableColumnFilterModes: false,
-    enableColumnOrdering: false,
-    enableGrouping: false,
-    enableColumnPinning: false,
-    enableFacetedValues: false,
+    enableColumnActions: false,
+    enableColumnFilters: false,
+    enablePagination: false,
+    enableSorting: true,
     enableRowActions: true,
     enableRowSelection: false,
     initialState: {
@@ -244,6 +275,7 @@ const Table = () => {
     renderTopToolbar: ({ table }) => {
       const handleAddUser = () => {
         handleOpenDialog("add", {
+          id: 0,
           firstName: "",
           lastName: "",
           email: "",
@@ -284,7 +316,7 @@ const Table = () => {
           </Box>
           <Box>
             <IconButton onClick={handleAddUser} style={{ color: "whitesmoke" }}>
-              <Add />
+              {/* <Add /> */}
             </IconButton>
           </Box>
         </Box>
