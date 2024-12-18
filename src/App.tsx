@@ -1,15 +1,18 @@
-import "./App.css";
-import AdvanceTable from "./assets/components/AdvanceTable";
-import RecipeReviewCard from "./assets/components/SetPassword.tsx";
-import { Box } from "@mui/material";
+import React from "react";
+import { Outlet } from "react-router-dom";
 
-function App() {
+const App: React.FC = () => {
   return (
-    <Box>
-      {/* <AdvanceTable /> */}
-      <RecipeReviewCard />
-    </Box>
+<<<<<<< Updated upstream
+    <div>
+      <Outlet />
+=======
+    <div style={{ display: "flex", flexDirection: "row" }}>
+      <Outlet />
+      <div></div>
+>>>>>>> Stashed changes
+    </div>
   );
-}
+};
 
 export default App;
